@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+body {
+  @apply bg-sand text-ink antialiased;
+}
+button,
+input,
+select {
+  @apply min-h-11;
+}
+:focus-visible {
+  @apply outline-none ring-2 ring-moss ring-offset-2;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

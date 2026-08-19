@@ -1,0 +1,12 @@
+create table public.users (id uuid primary key references auth.users(id) on delete cascade, email text not null, created_at timestamptz not null default now());
+create table public.monthly_budgets (id uuid primary key default gen_random_uuid(), user_id uuid not null references public.users(id) on delete cascade, month date not null, funds_minor bigint not null check(funds_minor>=0), savings_minor bigint not null default 0 check(savings_minor>=0 and savings_minor<=funds_minor), unique(user_id,month));
+create table public.budget_allocations (id uuid primary key default gen_random_uuid(), budget_id uuid not null references public.monthly_budgets(id) on delete cascade, date date not null, amount_minor bigint not null check(amount_minor>=0), category text not null, description text not null, kind text not null check(kind in ('fixed','flexible')), note text, recurring_rule_id uuid, generated_for date, unique(recurring_rule_id,generated_for));
+create table public.actual_expenses (id uuid primary key default gen_random_uuid(), budget_id uuid not null references public.monthly_budgets(id) on delete cascade, allocation_id uuid references public.budget_allocations(id) on delete set null, date date not null, amount_minor bigint not null check(amount_minor>=0), note text);
+create index monthly_budgets_user_month_idx on public.monthly_budgets(user_id,month);
+create index allocations_budget_date_idx on public.budget_allocations(budget_id,date);
+create index actuals_budget_date_idx on public.actual_expenses(budget_id,date);
+alter table public.users enable row level security; alter table public.monthly_budgets enable row level security; alter table public.budget_allocations enable row level security; alter table public.actual_expenses enable row level security;
+create policy "users own profile" on public.users for all using(id=auth.uid()) with check(id=auth.uid());
+create policy "users own budgets" on public.monthly_budgets for all using(user_id=auth.uid()) with check(user_id=auth.uid());
+create policy "users own allocations" on public.budget_allocations for all using(exists(select 1 from public.monthly_budgets b where b.id=budget_id and b.user_id=auth.uid())) with check(exists(select 1 from public.monthly_budgets b where b.id=budget_id and b.user_id=auth.uid()));
+create policy "users own actuals" on public.actual_expenses for all using(exists(select 1 from public.monthly_budgets b where b.id=budget_id and b.user_id=auth.uid())) with check(exists(select 1 from public.monthly_budgets b where b.id=budget_id and b.user_id=auth.uid()));
